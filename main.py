@@ -1,13 +1,13 @@
 import json
+import time
+import requests
+
+import config
 
 from multi_timeframe import trend_signal
 from pump_detector import detect_pump
 from market_filter import market_volatility, market_sideways
 from atr_filter import atr_signal
-
-from binance.client import Client
-import time
-import config
 
 from strategy import check_signal
 from trade import buy, sell
@@ -15,7 +15,14 @@ from risk import calculate_position
 from logger import log_trade
 from dashboard import show
 
-client = Client(config.API_KEY, config.API_SECRET)
+
+# criar client da Binance apenas se não for paper trading
+if config.PAPER_TRADING:
+    client = None
+else:
+    from binance.client import Client
+    client = Client(config.API_KEY, config.API_SECRET)
+
 
 prices = []
 position = False
@@ -25,13 +32,16 @@ quantity = 0
 
 def get_price():
 
-    ticker = client.get_symbol_ticker(symbol=config.SYMBOL)
-    return float(ticker["price"])
+    # pegar preço via API pública (não bloqueada)
+    url = f"https://api.binance.com/api/v3/ticker/price?symbol={config.SYMBOL}"
+    data = requests.get(url).json()
+
+    return float(data["price"])
 
 
 def get_balance():
 
-    # modo simulação evita bloqueio da Binance
+    # saldo simulado para paper trading
     if config.PAPER_TRADING:
         return 1000
 
@@ -56,10 +66,10 @@ def run_bot():
 
             balance = get_balance()
 
-            # mostrar no terminal
+            # mostrar status no terminal
             show(price, balance, position)
 
-            # -------- DASHBOARD WEB --------
+            # atualizar dashboard
             status = {
                 "price": price,
                 "balance": balance,
@@ -68,7 +78,6 @@ def run_bot():
 
             with open("status.json", "w") as f:
                 json.dump(status, f)
-            # --------------------------------
 
             # detectar pump / dump
             pump = detect_pump()
@@ -86,6 +95,7 @@ def run_bot():
                 print("Trend:", trend)
 
             # filtros de mercado
+
             if not market_volatility(prices):
                 print("Mercado sem volatilidade")
                 time.sleep(config.INTERVAL)
@@ -96,7 +106,6 @@ def run_bot():
                 time.sleep(config.INTERVAL)
                 continue
 
-            # filtro ATR
             if not atr_signal():
                 print("Volatilidade baixa (ATR)")
                 time.sleep(config.INTERVAL)
