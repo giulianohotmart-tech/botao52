@@ -8,6 +8,9 @@ def get_candles(symbol, interval="5m", limit=100):
 
     data = requests.get(url).json()
 
+    if not isinstance(data, list):
+        return pd.DataFrame(columns=["close"])
+
     df = pd.DataFrame(data)
 
     df = df[[0,1,2,3,4]]

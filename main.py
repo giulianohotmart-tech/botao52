@@ -27,18 +27,23 @@ def get_price():
 
         url = f"https://api.binance.com/api/v3/ticker/price?symbol={config.SYMBOL}"
 
-        data = requests.get(url, timeout=10).json()
+        response = requests.get(url, timeout=10)
 
-        return float(data["price"])
+        data = response.json()
+
+        if "price" in data:
+            return float(data["price"])
+
+        print("Resposta inesperada da API:", data)
 
     except Exception as e:
 
         print("Erro ao obter preço:", e)
 
-        if prices:
-            return prices[-1]
+    if prices:
+        return prices[-1]
 
-        return 0
+    return 65000
 
 
 def get_balance():
