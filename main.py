@@ -10,18 +10,9 @@ from market_filter import market_volatility, market_sideways
 from atr_filter import atr_signal
 
 from strategy import check_signal
-from trade import buy, sell
 from risk import calculate_position
 from logger import log_trade
 from dashboard import show
-
-
-# criar client da Binance apenas se não for paper trading
-if config.PAPER_TRADING:
-    client = None
-else:
-    from binance.client import Client
-    client = Client(config.API_KEY, config.API_SECRET)
 
 
 prices = []
@@ -32,11 +23,22 @@ quantity = 0
 
 def get_price():
 
-    # pegar preço via API pública (não bloqueada)
-    url = f"https://api.binance.com/api/v3/ticker/price?symbol={config.SYMBOL}"
-    data = requests.get(url).json()
+    try:
 
-    return float(data["price"])
+        url = f"https://api.binance.com/api/v3/ticker/price?symbol={config.SYMBOL}"
+
+        data = requests.get(url, timeout=10).json()
+
+        return float(data["price"])
+
+    except Exception as e:
+
+        print("Erro ao obter preço:", e)
+
+        if prices:
+            return prices[-1]
+
+        return 0
 
 
 def get_balance():
@@ -45,8 +47,8 @@ def get_balance():
     if config.PAPER_TRADING:
         return 1000
 
-    balance = client.get_asset_balance(asset="USDT")
-    return float(balance["free"])
+    # caso futuramente rode em VPS com Binance real
+    return 0
 
 
 def run_bot():
@@ -62,11 +64,11 @@ def run_bot():
         try:
 
             price = get_price()
+
             prices.append(price)
 
             balance = get_balance()
 
-            # mostrar status no terminal
             show(price, balance, position)
 
             # atualizar dashboard
@@ -88,7 +90,7 @@ def run_bot():
             if pump == "DUMP":
                 print("⚠️ DUMP detectado")
 
-            # tendência multi timeframe
+            # tendência
             trend = trend_signal()
 
             if trend:
@@ -97,18 +99,27 @@ def run_bot():
             # filtros de mercado
 
             if not market_volatility(prices):
+
                 print("Mercado sem volatilidade")
+
                 time.sleep(config.INTERVAL)
+
                 continue
 
             if market_sideways(prices):
+
                 print("Mercado lateral")
+
                 time.sleep(config.INTERVAL)
+
                 continue
 
             if not atr_signal():
+
                 print("Volatilidade baixa (ATR)")
+
                 time.sleep(config.INTERVAL)
+
                 continue
 
             signal = check_signal(prices)
@@ -121,12 +132,10 @@ def run_bot():
                     price
                 )
 
-                if config.PAPER_TRADING:
-                    print("SIMULAÇÃO COMPRA:", quantity)
-                else:
-                    buy(client, config.SYMBOL, quantity)
+                print("SIMULAÇÃO COMPRA:", quantity)
 
                 entry_price = price
+
                 position = True
 
                 log_trade("BUY", price, quantity)
@@ -137,22 +146,18 @@ def run_bot():
 
                 if profit <= -config.STOP_LOSS:
 
-                    if config.PAPER_TRADING:
-                        print("SIMULAÇÃO STOP LOSS")
-                    else:
-                        sell(client, config.SYMBOL, quantity)
+                    print("SIMULAÇÃO STOP LOSS")
 
                     position = False
+
                     log_trade("STOP", price, quantity)
 
                 elif profit >= config.TAKE_PROFIT:
 
-                    if config.PAPER_TRADING:
-                        print("SIMULAÇÃO TAKE PROFIT")
-                    else:
-                        sell(client, config.SYMBOL, quantity)
+                    print("SIMULAÇÃO TAKE PROFIT")
 
                     position = False
+
                     log_trade("TAKE PROFIT", price, quantity)
 
         except Exception as e:
