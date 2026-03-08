@@ -31,6 +31,10 @@ def get_price():
 
 def get_balance():
 
+    # modo simulação evita bloqueio da Binance
+    if config.PAPER_TRADING:
+        return 1000
+
     balance = client.get_asset_balance(asset="USDT")
     return float(balance["free"])
 
@@ -52,9 +56,10 @@ def run_bot():
 
             balance = get_balance()
 
+            # mostrar no terminal
             show(price, balance, position)
 
-            # atualizar dashboard
+            # -------- DASHBOARD WEB --------
             status = {
                 "price": price,
                 "balance": balance,
@@ -63,6 +68,7 @@ def run_bot():
 
             with open("status.json", "w") as f:
                 json.dump(status, f)
+            # --------------------------------
 
             # detectar pump / dump
             pump = detect_pump()
@@ -80,7 +86,6 @@ def run_bot():
                 print("Trend:", trend)
 
             # filtros de mercado
-
             if not market_volatility(prices):
                 print("Mercado sem volatilidade")
                 time.sleep(config.INTERVAL)
@@ -109,7 +114,6 @@ def run_bot():
 
                 if config.PAPER_TRADING:
                     print("SIMULAÇÃO COMPRA:", quantity)
-
                 else:
                     buy(client, config.SYMBOL, quantity)
 
@@ -126,7 +130,6 @@ def run_bot():
 
                     if config.PAPER_TRADING:
                         print("SIMULAÇÃO STOP LOSS")
-
                     else:
                         sell(client, config.SYMBOL, quantity)
 
@@ -137,7 +140,6 @@ def run_bot():
 
                     if config.PAPER_TRADING:
                         print("SIMULAÇÃO TAKE PROFIT")
-
                     else:
                         sell(client, config.SYMBOL, quantity)
 
