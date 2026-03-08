@@ -1,22 +1,18 @@
-from binance.client import Client
+import requests
 import pandas as pd
-import config
 
-client = Client(config.API_KEY, config.API_SECRET)
 
-def get_candles(symbol, interval, limit=100):
+def get_candles(symbol, interval="5m", limit=100):
 
-    candles = client.get_klines(
-        symbol=symbol,
-        interval=interval,
-        limit=limit
-    )
+    url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
 
-    df = pd.DataFrame(candles)
+    data = requests.get(url).json()
 
-    df = df[[0,4]]
+    df = pd.DataFrame(data)
 
-    df.columns = ["time","close"]
+    df = df[[0,1,2,3,4]]
+
+    df.columns = ["time","open","high","low","close"]
 
     df["close"] = df["close"].astype(float)
 
