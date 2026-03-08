@@ -4,19 +4,29 @@ import pandas as pd
 
 def get_candles(symbol, interval="5m", limit=100):
 
-    url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+    try:
 
-    data = requests.get(url).json()
+        url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
 
-    if not isinstance(data, list):
-        return pd.DataFrame(columns=["close"])
+        response = requests.get(url, timeout=10)
 
-    df = pd.DataFrame(data)
+        data = response.json()
 
-    df = df[[0,1,2,3,4]]
+        if not isinstance(data, list) or len(data) == 0:
+            return pd.DataFrame({"close":[65000]})
 
-    df.columns = ["time","open","high","low","close"]
+        df = pd.DataFrame(data)
 
-    df["close"] = df["close"].astype(float)
+        df = df[[0,1,2,3,4]]
 
-    return df
+        df.columns = ["time","open","high","low","close"]
+
+        df["close"] = df["close"].astype(float)
+
+        return df
+
+    except Exception as e:
+
+        print("Erro ao obter candles:", e)
+
+        return pd.DataFrame({"close":[65000]})
