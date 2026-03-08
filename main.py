@@ -4,10 +4,11 @@ import requests
 
 import config
 
-from multi_timeframe import trend_signal
-from pump_detector import detect_pump
-from market_filter import market_volatility, market_sideways
-from atr_filter import atr_signal
+trend_signal = lambda: None
+detect_pump = lambda: None
+market_volatility = lambda prices: True
+market_sideways = lambda prices: False
+atr_signal = lambda: True
 
 from strategy import check_signal
 from risk import calculate_position
