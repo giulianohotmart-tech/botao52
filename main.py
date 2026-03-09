@@ -1,3 +1,4 @@
+from telegram_bot import send_telegram
 import json
 import time
 import requests
