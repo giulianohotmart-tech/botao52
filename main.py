@@ -1,8 +1,10 @@
 from telegram_bot import send_telegram
+
 import json
 import time
 import requests
 import config
+
 
 prices = []
 position = False
@@ -23,6 +25,8 @@ def get_price():
         if "price" in data:
             return float(data["price"])
 
+        print("Resposta inesperada da API:", data)
+
     except Exception as e:
 
         print("Erro API:", e)
@@ -40,6 +44,8 @@ def run_bot():
     global quantity
 
     print("BOTÃO52 iniciado")
+
+    send_telegram("🚀 BOTÃO52 iniciado")
 
     while True:
 
@@ -74,4 +80,5 @@ def run_bot():
 
 
 if __name__ == "__main__":
+
     run_bot()
